@@ -2,7 +2,7 @@ import requests
 import json
 
 '''
-调用本地部署的671B大模型，根据curl调用方式改写：
+根据curl调用方式改写：
 curl -X POST 
 -H "Content-Type: application/json" 
 -d '{"model":"deepseekr1",
