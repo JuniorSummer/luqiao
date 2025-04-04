@@ -57,17 +57,22 @@ async def model_inference(query):
             async for line in response.content.iter_any():
                 if line:
                     line = line.decode('utf-8').strip()
-                    if line.startswith('data: '):
-                        line = line[6:]
-                    if line == "[DONE]":
-                        break
-                    try:
-                        json_data = json.loads(line)
-                        content = json_data['choices'][0]['delta'].get('content', '')
-                        if content:
-                            yield content
-                    except json.JSONDecodeError:
-                        print(f"无法解析为JSON: {line}")
+                    
+                    # 对数据进行解析
+                    # if line.startswith('data: '):
+                    #     line = line[6:]
+                    # if line == "[DONE]":
+                    #     break
+                    # try:
+                    #     json_data = json.loads(line)
+                    #     content = json_data['choices'][0]['delta'].get('content', '')
+                    #     if content:
+                    #         yield content
+                    # except json.JSONDecodeError:
+                    #     print(f"无法解析为JSON: {line}")
+
+                    # 不对数据进行解析
+                    yield line
 
 
 async def main(query):
@@ -76,9 +81,9 @@ async def main(query):
         try:
             results = searxng_search(query)
             if results == "未找到合适的搜索结果" or results == "未知的结果类型":
-                yield "未找到合适的搜索结果，请换个说法再试\n"
+                print("未找到合适的搜索结果，请换个说法再试\n")
             else:
-                yield "已搜索到相关链接，答案生成中\n"
+                print("已搜索到相关链接，答案生成中\n")
                 template = """
                     第一个网页摘要：{snippet1}
                     第一个网页标题：{title1}
@@ -98,12 +103,10 @@ async def main(query):
                     query=query
                 )
                 async for chunk in model_inference(new_query):
-                    print(chunk)
-                    yield chunk
-                # print(f"\n\n参考网址如下：\n{results[0]['link']}\n{results[1]['link']}\n{results[2]['link']}\n")
-                yield f"\n\n参考网址如下：\n{results[0]['link']}\n{results[1]['link']}\n{results[2]['link']}\n"
+                    yield f"{chunk}\n"
+                print(f"\n\n参考网址如下：\n{results[0]['link']}\n{results[1]['link']}\n{results[2]['link']}\n")
         except Exception as e:
-            yield f"主程序出错: {e}"
+            print(f"主程序出错: {e}")
         finally:
             searxng_process.terminate()
 
