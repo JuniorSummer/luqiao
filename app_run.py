@@ -3,10 +3,12 @@ from langchain import PromptTemplate
 import json
 import subprocess
 import time
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 import uvicorn
 from fastapi.responses import StreamingResponse
 import aiohttp
+from pydantic import BaseModel
+
 
 def start_searxng_service():
     try:
@@ -15,8 +17,9 @@ def start_searxng_service():
         time.sleep(10)
         return process
     except Exception as e:
-        print(f"启动 searxng 服务时出错: {e}")
+        print(f"启动searxng服务时出错: {e}")
         return None
+
 
 def searxng_search(query):
     search = SearxSearchWrapper(searx_host="http://localhost:9003/")
@@ -28,7 +31,6 @@ def searxng_search(query):
         engines=["baidu", "360search", "bing", "sougo", "bing_news"],
         num_results=5
     )
-
     if isinstance(results, list) and results:
         first_result = results[0]
         if isinstance(first_result, dict) and 'Result' in first_result and first_result['Result'] == 'No good Search Result was found':
@@ -36,6 +38,7 @@ def searxng_search(query):
         elif isinstance(first_result, dict) and 'snippet' in first_result:
             return results
     return "未知的结果类型"
+
 
 async def model_inference(query):
     url = 'http://125.122.39.104:1025/v1/chat/completions'
@@ -48,7 +51,6 @@ async def model_inference(query):
         "max_tokens": 2048,
         "stream": True
     }
-
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             response.raise_for_status()
@@ -65,7 +67,8 @@ async def model_inference(query):
                         if content:
                             yield content
                     except json.JSONDecodeError:
-                        print(f"无法解析为 JSON: {line}")
+                        print(f"无法解析为JSON: {line}")
+
 
 async def main(query):
     searxng_process = start_searxng_service()
@@ -73,20 +76,18 @@ async def main(query):
         try:
             results = searxng_search(query)
             if results == "未找到合适的搜索结果" or results == "未知的结果类型":
-                yield "未找到合适的搜索结果，请换个说法再试"
+                yield "未找到合适的搜索结果，请换个说法再试\n"
             else:
+                yield "已搜索到相关链接，答案生成中\n"
                 template = """
                     第一个网页摘要：{snippet1}
                     第一个网页标题：{title1}
-
                     第二个网页摘要：{snippet2}
                     第二个网页标题：{title2}
-
                     第三个网页摘要：{snippet3}
                     第三个网页标题：{title3}
                     请结合检索到的三个相关度最高的网页内容，以简洁的语言回答这个问题：{query}。
                     """
-
                 new_query = template.format(
                     snippet1=results[0]['snippet'],
                     title1=results[0]['title'],
@@ -106,11 +107,17 @@ async def main(query):
         finally:
             searxng_process.terminate()
 
+
 app = FastAPI()
 
-@app.get("/run_internet_search")
-async def run_internet_search(query: str):
-    return StreamingResponse(main(query))
+class QueryRequest(BaseModel):
+    query: str
+
+# 修改为POST请求
+@app.post("/run_internet_search")
+async def run_internet_search(request: QueryRequest):
+    return StreamingResponse(main(request.query))
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=1927)
