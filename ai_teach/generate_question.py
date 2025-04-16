@@ -130,7 +130,7 @@ def generate_question(single_choice_num, yes_no_question_num):
         # yield f"{line}\n"
     return full_response
 
-# TODO:解析方式待完善，目前无法解析
+
 def question_parse(output):
     # 分割获取纯JSON内容（假设以"</think>"作为分隔符）
     json_start = output.find("```json")
