@@ -131,30 +131,30 @@ def generate_question(single_choice_num, yes_no_question_num):
     return full_response
 
 # TODO:解析方式待完善，目前无法解析
-# def question_parse(output):
-#     # 分割获取纯JSON内容（假设以"</think>"作为分隔符）
-#     json_start = output.find("```json")
-#     json_end = output.find("```", json_start + 6)  # 寻找结束的```
+def question_parse(output):
+    # 分割获取纯JSON内容（假设以"</think>"作为分隔符）
+    json_start = output.find("```json")
+    json_end = output.find("```", json_start + 6)  # 寻找结束的```
     
-#     if json_start == -1 or json_end == -1:
-#         raise ValueError("未找到有效的JSON代码块")
+    if json_start == -1 or json_end == -1:
+        raise ValueError("未找到有效的JSON代码块")
     
-#     json_content = output[json_start + 6:json_end].strip()  # 提取中间的JSON内容
+    json_content = output[json_start + 7:json_end].strip()  # 提取中间的JSON内容
     
-#     # 解析并验证JSON
-#     try:
-#         questions_data = json.loads(json_content)
-#     except json.JSONDecodeError as e:
-#         raise ValueError(f"JSON解析错误: {str(e)}")
+    # 解析并验证JSON
+    try:
+        questions_data = json.loads(json_content)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSON解析错误: {str(e)}")
     
-#     # 保存到文件
-#     output_file = './generated_question.txt'
-#     with open(output_file, "w", encoding="utf-8") as f:
-#         json.dump(questions_data, f, ensure_ascii=False, indent=4)
+    # 保存到文件
+    output_file = './generated_question.txt'
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(questions_data, f, ensure_ascii=False, indent=4)
     
-#     print(f"成功解析并保存{len(questions_data)}道题目到{output_file}")
+    print(f"成功解析并保存{len(questions_data)}道题目到{output_file}")
     
 
 if __name__ == "__main__":
     res = generate_question(single_choice_num = 5, yes_no_question_num = 5)
-    # question_parse(output=res)
+    question_parse(output=res)
